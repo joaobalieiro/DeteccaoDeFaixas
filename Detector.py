@@ -51,3 +51,47 @@ def calcula_coordenadas(quadro, parametros):
     x1 = int((y1 - intercepto) / inclinacao)
     x2 = int((y2 - intercepto) / inclinacao)
     return np.array([x1, y1, x2, y2])
+
+def visualiza_linhas(quadro, linhas):
+    # Cria uma imagem vazia e desenha as linhas detectadas
+    linhas_visual = np.zeros_like(quadro)
+    if linhas is not None:
+        for x1, y1, x2, y2 in linhas:
+            cv.line(linhas_visual, (x1, y1), (x2, y2), (0, 255, 0), 5)
+    return linhas_visual
+
+
+# Le o video processa cada quadro detecta faixas e exibe o resultado
+captura = cv.VideoCapture("rua.mp4")
+
+while captura.isOpened():
+    retorno, quadro = captura.read()
+
+    canny = faz_canny(quadro)
+    cv.imshow("canny", canny)
+
+    segmento = faz_segmentacao(canny)
+
+    hough = cv.HoughLinesP(
+        segmento,
+        2,
+        np.pi / 180,
+        100,
+        np.array([]),
+        minLineLength=100,
+        maxLineGap=50
+    )
+
+    linhas = calcula_linhas(quadro, hough)
+
+    linhas_visual = visualiza_linhas(quadro, linhas)
+    cv.imshow("hough", linhas_visual)
+
+    saida = cv.addWeighted(quadro, 0.9, linhas_visual, 1, 1)
+    cv.imshow("output", saida)
+
+    if cv.waitKey(10) & 0xFF == ord('q'):
+        break
+
+captura.release()
+cv.destroyAllWindows()
